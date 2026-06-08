@@ -80,6 +80,8 @@ export default function App() {
           <SettingsScreen 
             theme={theme} 
             onThemeChange={setTheme} 
+            records={records}
+            onImportData={setRecords}
             onClearData={handleClearData} 
           />
         );

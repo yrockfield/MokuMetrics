@@ -1,5 +1,8 @@
 package com.example.mokumetrics
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -27,10 +31,41 @@ import androidx.compose.ui.unit.sp
 fun SettingsScreen(
     currentTheme: String,
     onThemeChange: (String) -> Unit,
-    onClearData: () -> Unit
+    onClearData: () -> Unit,
+    onExportData: () -> String,
+    onImportData: (String) -> Boolean
 ) {
     var showResetDialog by remember { mutableStateOf(false) }
+    var showImportConfirmDialog by remember { mutableStateOf(false) }
+    var pendingImportJson by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
     val customColors = LocalAppThemeColors.current
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json"),
+        onResult = { uri ->
+            uri?.let {
+                val json = onExportData()
+                context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.bufferedWriter().use { it.write(json) }
+                    Toast.makeText(context, "エクスポートが完了しました", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    )
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri ->
+            uri?.let {
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    val jsonString = inputStream.bufferedReader().use { it.readText() }
+                    pendingImportJson = jsonString
+                    showImportConfirmDialog = true
+                }
+            }
+        }
+    )
 
     val themesList = listOf(
         ThemeOption(
@@ -133,7 +168,64 @@ fun SettingsScreen(
             }
         }
 
-        // 2. データ管理セクション
+        // 2. データの管理セクション（インポート・エクスポート）
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, customColors.cardBorder)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "データの管理",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "喫煙履歴データのバックアップ（エクスポート）や、過去のバックアップデータの復元（インポート）が行えます。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = customColors.textSecondary
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                          onClick = { exportLauncher.launch("mokumetrics_data_${System.currentTimeMillis()}.json") },
+                          modifier = Modifier.weight(1f),
+                          colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                          shape = RoundedCornerShape(12.dp),
+                          border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                    ) {
+                        Text(
+                            text = "エクスポート",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Button(
+                          onClick = { importLauncher.launch(arrayOf("application/json")) },
+                          modifier = Modifier.weight(1f),
+                          colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                          shape = RoundedCornerShape(12.dp),
+                          border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                    ) {
+                        Text(
+                            text = "インポート",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+
+        // 3. データの削除セクション
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -144,7 +236,7 @@ fun SettingsScreen(
                 modifier = Modifier.padding(20.dp)
             ) {
                 Text(
-                    text = "データの管理",
+                    text = "データの削除",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.error
@@ -205,7 +297,7 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(60.dp))
     }
 
-    // 3. リセット確認ダイアログ
+    // リセット確認ダイアログ
     if (showResetDialog) {
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
@@ -223,6 +315,46 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showResetDialog = false }) {
+                    Text(text = "キャンセル")
+                }
+            }
+        )
+    }
+
+    // インポート確認ダイアログ
+    if (showImportConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                showImportConfirmDialog = false 
+                pendingImportJson = null
+            },
+            title = { Text(text = "データのインポート") },
+            text = { Text(text = "データをインポートすると、現在のすべての記録が上書きされます。よろしいですか？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pendingImportJson?.let { json ->
+                            val success = onImportData(json)
+                            if (success) {
+                                Toast.makeText(context, "インポートが完了しました", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "インポートに失敗しました。正しいJSONファイルか確認してください", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        showImportConfirmDialog = false
+                        pendingImportJson = null
+                    }
+                ) {
+                    Text(text = "インポートする", color = MaterialTheme.colorScheme.primary)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { 
+                        showImportConfirmDialog = false 
+                        pendingImportJson = null
+                    }
+                ) {
                     Text(text = "キャンセル")
                 }
             }

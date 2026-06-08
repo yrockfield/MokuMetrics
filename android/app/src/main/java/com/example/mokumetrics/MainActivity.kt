@@ -175,7 +175,9 @@ class MainActivity : ComponentActivity() {
                             "settings" -> SettingsScreen(
                                 currentTheme = currentTheme,
                                 onThemeChange = { theme -> viewModel.setTheme(theme) },
-                                onClearData = { viewModel.clearAllRecords() }
+                                onClearData = { viewModel.clearAllRecords() },
+                                onExportData = { viewModel.exportToJson() },
+                                onImportData = { json -> viewModel.importFromJson(json) }
                             )
                         }
                     }

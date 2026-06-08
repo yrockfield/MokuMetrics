@@ -91,4 +91,39 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
         context.sendBroadcast(intent)
     }
+
+    fun exportToJson(): String {
+        val jsonArray = org.json.JSONArray()
+        records.value.forEach { record ->
+            val obj = org.json.JSONObject()
+            obj.put("id", record.id)
+            obj.put("timestamp", record.timestamp)
+            obj.put("memo", record.memo)
+            jsonArray.put(obj)
+        }
+        return jsonArray.toString(4)
+    }
+
+    fun importFromJson(jsonString: String): Boolean {
+        return try {
+            val jsonArray = org.json.JSONArray(jsonString)
+            val newRecords = mutableListOf<SmokeRecord>()
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                val id = obj.optString("id", (System.currentTimeMillis() + i).toString())
+                val timestamp = obj.getLong("timestamp")
+                val memo = obj.optString("memo", "")
+                newRecords.add(SmokeRecord(id, timestamp, memo))
+            }
+            viewModelScope.launch {
+                repository.clearAllRecords()
+                newRecords.forEach { repository.insertRecord(it) }
+                notifyWidgetUpdate()
+            }
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
 }
