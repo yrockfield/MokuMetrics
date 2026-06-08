@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -129,9 +130,10 @@ fun HistoryScreen(
                     onClick = { displayDate = displayDate.minusDays(1) }
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
+                        imageVector = Icons.Default.PlayArrow,
                         contentDescription = "前日へ",
-                        tint = MaterialTheme.colorScheme.onSurface
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.rotate(180f)
                     )
                 }
 
@@ -163,7 +165,7 @@ fun HistoryScreen(
                     onClick = { displayDate = displayDate.plusDays(1) }
                 ) {
                     Icon(
-                        imageVector = Icons.Default.PlayArrow, // ArrowForward の代わりに PlayArrow (右向き) を安全のため使用、あるいは ArrowForward
+                        imageVector = Icons.Default.PlayArrow,
                         contentDescription = "翌日へ",
                         tint = MaterialTheme.colorScheme.onSurface
                     )

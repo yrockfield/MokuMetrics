@@ -109,8 +109,8 @@ export default function HistoryScreen({ records, onAddRecord, onDeleteRecord, on
           marginBottom: '16px' 
         }}
       >
-        <button className="icon-btn" onClick={handlePrevDay} title="前日へ">
-          <ChevronLeft size={20} />
+        <button className="icon-btn" onClick={handlePrevDay} title="前日へ" style={{ fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          ◀
         </button>
 
         {/* 日付表示と透明な日付インプットを重ねる */}
@@ -152,8 +152,8 @@ export default function HistoryScreen({ records, onAddRecord, onDeleteRecord, on
           />
         </div>
 
-        <button className="icon-btn" onClick={handleNextDay} title="翌日へ">
-          <ChevronRight size={20} />
+        <button className="icon-btn" onClick={handleNextDay} title="翌日へ" style={{ fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          ▶
         </button>
       </div>
 
