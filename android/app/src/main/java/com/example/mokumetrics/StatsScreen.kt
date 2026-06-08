@@ -353,6 +353,5 @@ fun StatsScreen(records: List<SmokeRecord>) {
             }
         }
         
-        Spacer(modifier = Modifier.height(60.dp))
     }
 }

@@ -294,7 +294,6 @@ fun SettingsScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(60.dp))
     }
 
     // リセット確認ダイアログ

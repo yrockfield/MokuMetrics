@@ -283,7 +283,9 @@ fun HistoryScreen(
             border = BorderStroke(1.dp, customColors.cardBorder)
         ) {
             Column(
-                modifier = Modifier.padding(20.dp)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp)
             ) {
                 Text(
                     text = "喫煙履歴 (${filteredRecords.size}件)",
@@ -306,6 +308,7 @@ fun HistoryScreen(
                     }
                 } else {
                     LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(filteredRecords, key = { it.id }) { record ->
@@ -416,6 +419,5 @@ fun HistoryScreen(
             }
         }
         
-        Spacer(modifier = Modifier.height(60.dp))
     }
 }

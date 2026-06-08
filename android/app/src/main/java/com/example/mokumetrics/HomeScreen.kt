@@ -311,7 +311,6 @@ fun HomeScreen(
             }
         }
         
-        Spacer(modifier = Modifier.height(60.dp)) // ナビゲーションバーの余白
         }
 
         // トーストオーバーレイ
