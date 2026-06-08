@@ -5,6 +5,7 @@ id widget_container
 id widget_count_text
 id widget_title
 layout widget_layout
+mipmap ic_launcher
 string app_name
 string widget_button_label
 string widget_name

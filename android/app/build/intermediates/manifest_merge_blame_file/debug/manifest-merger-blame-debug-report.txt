@@ -27,8 +27,8 @@
 19-->[androidx.core:core:1.12.0] /home/yiwata/.gradle/caches/transforms-3/3981487fd0d37772f6ebc56bc777cc62/transformed/core-1.12.0/AndroidManifest.xml:28:18-86
 20        android:debuggable="true"
 21        android:extractNativeLibs="false"
-22        android:icon="@android:drawable/sym_def_app_icon"
-22-->/home/yiwata/repo/MokuMetrics/android/app/src/main/AndroidManifest.xml:6:9-58
+22        android:icon="@mipmap/ic_launcher"
+22-->/home/yiwata/repo/MokuMetrics/android/app/src/main/AndroidManifest.xml:6:9-43
 23        android:label="@string/app_name"
 23-->/home/yiwata/repo/MokuMetrics/android/app/src/main/AndroidManifest.xml:7:9-41
 24        android:supportsRtl="true"

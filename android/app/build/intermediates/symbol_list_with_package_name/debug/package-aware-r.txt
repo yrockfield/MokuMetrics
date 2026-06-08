@@ -190,6 +190,7 @@ layout notification_template_icon_group
 layout notification_template_part_chronometer
 layout notification_template_part_time
 layout widget_layout
+mipmap ic_launcher
 string androidx_startup
 string app_name
 string bottom_sheet_collapse_description

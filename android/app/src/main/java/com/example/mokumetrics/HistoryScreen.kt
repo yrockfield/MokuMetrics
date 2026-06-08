@@ -5,7 +5,6 @@ import android.app.TimePickerDialog
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -39,10 +39,18 @@ fun HistoryScreen(
     val context = LocalContext.current
     var showAddForm by remember { mutableStateOf(false) }
 
-    // 手動追加の内部状態
-    var selectedDate by remember { mutableStateOf(LocalDate.now()) }
+    // 表示対象の日付 (初期値は今日)
+    var displayDate by remember { mutableStateOf(LocalDate.now()) }
+
+    // 手動追加の内部状態 (初期値は表示中の日付に連動)
+    var selectedDate by remember { mutableStateOf(displayDate) }
     var selectedTime by remember { mutableStateOf(LocalTime.now()) }
     var manualMemo by remember { mutableStateOf("") }
+
+    // 表示中日付が切り替わったら、手動追加のデフォルト日付も連動させる
+    LaunchedEffect(displayDate) {
+        selectedDate = displayDate
+    }
 
     // 編集モード管理
     var editingId by remember { mutableStateOf<String?>(null) }
@@ -53,8 +61,19 @@ fun HistoryScreen(
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd (E)")
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
-    // DatePickerDialog の表示
-    val datePickerDialog = DatePickerDialog(
+    // 表示日付直接選択用の DatePickerDialog
+    val displayDatePickerDialog = DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            displayDate = LocalDate.of(year, month + 1, dayOfMonth)
+        },
+        displayDate.year,
+        displayDate.monthValue - 1,
+        displayDate.dayOfMonth
+    )
+
+    // 手動追加フォーム用の DatePickerDialog
+    val manualDatePickerDialog = DatePickerDialog(
         context,
         { _, year, month, dayOfMonth ->
             selectedDate = LocalDate.of(year, month + 1, dayOfMonth)
@@ -75,13 +94,84 @@ fun HistoryScreen(
         true
     )
 
+    // 表示中日付に一致するレコードをフィルタリング (タイムスタンプ降順)
+    val filteredRecords = remember(records, displayDate) {
+        records.filter { record ->
+            val recordDate = Instant.ofEpochMilli(record.timestamp)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+            recordDate == displayDate
+        }.sortedByDescending { it.timestamp }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 1. 手動追加の切り替えボタン
+        // 1. 日付選択ナビゲーションヘッダー
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, customColors.cardBorder)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 前日へボタン
+                IconButton(
+                    onClick = { displayDate = displayDate.minusDays(1) }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "前日へ",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                // カレンダー直接選択用ボタン
+                TextButton(
+                    onClick = { displayDatePickerDialog.show() }
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = displayDate.format(dateFormatter),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Icon(
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = "カレンダー選択",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
+                // 翌日へボタン
+                IconButton(
+                    onClick = { displayDate = displayDate.plusDays(1) }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow, // ArrowForward の代わりに PlayArrow (右向き) を安全のため使用、あるいは ArrowForward
+                        contentDescription = "翌日へ",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+
+        // 2. 手動追加の切り替えボタン
         Button(
             onClick = { showAddForm = !showAddForm },
             modifier = Modifier.fillMaxWidth(),
@@ -105,7 +195,7 @@ fun HistoryScreen(
             }
         }
 
-        // 2. 手動追加フォーム
+        // 3. 手動追加フォーム
         if (showAddForm) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -131,7 +221,7 @@ fun HistoryScreen(
                     ) {
                         Text(text = "日付: ${selectedDate.format(dateFormatter)}", fontSize = 14.sp)
                         Button(
-                            onClick = { datePickerDialog.show() },
+                            onClick = { manualDatePickerDialog.show() },
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
                         ) {
                             Text(text = "日付を変更", color = MaterialTheme.colorScheme.primary)
@@ -181,7 +271,7 @@ fun HistoryScreen(
             }
         }
 
-        // 3. 履歴リスト
+        // 4. 履歴リスト
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -194,20 +284,20 @@ fun HistoryScreen(
                 modifier = Modifier.padding(20.dp)
             ) {
                 Text(
-                    text = "タイムライン履歴 (${records.size}件)",
+                    text = "喫煙履歴 (${filteredRecords.size}件)",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                if (records.isEmpty()) {
+                if (filteredRecords.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "喫煙データがまだありません。",
+                            text = "この日の喫煙データはありません。",
                             color = customColors.textSecondary,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -216,9 +306,8 @@ fun HistoryScreen(
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(records, key = { it.id }) { record ->
+                        items(filteredRecords, key = { it.id }) { record ->
                             val zdt = Instant.ofEpochMilli(record.timestamp).atZone(ZoneId.systemDefault())
-                            val dateStr = zdt.format(dateFormatter)
                             val timeStr = zdt.format(timeFormatter)
 
                             Row(
@@ -235,18 +324,13 @@ fun HistoryScreen(
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Row(
-                                        verticalAlignment = Alignment.Bottom,
+                                        verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         Text(
                                             text = timeStr,
                                             fontSize = 16.sp,
                                             fontWeight = FontWeight.Bold
-                                        )
-                                        Text(
-                                            text = dateStr,
-                                            fontSize = 11.sp,
-                                            color = customColors.textSecondary
                                         )
                                     }
 

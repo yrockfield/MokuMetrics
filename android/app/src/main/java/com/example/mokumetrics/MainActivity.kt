@@ -4,8 +4,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
@@ -44,14 +48,20 @@ class MainActivity : ComponentActivity() {
                             title = {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Text(text = "🚬", fontSize = 24.sp)
+                                    Image(
+                                        painter = painterResource(id = R.mipmap.ic_launcher),
+                                        contentDescription = "MokuMetrics Logo",
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                    )
                                     Text(
                                         text = "MokuMetrics",
                                         fontWeight = FontWeight.ExtraBold,
                                         letterSpacing = (-0.5).sp,
-                                        fontSize = 20.sp,
+                                        fontSize = 24.sp,
                                         color = MaterialTheme.colorScheme.onBackground
                                     )
                                 }

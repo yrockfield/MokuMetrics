@@ -91,9 +91,9 @@ export default function App() {
   return (
     <div className="app-container">
       {/* 上部ヘッダー */}
-      <header className="app-header">
-        <h1 className="app-title">
-          <span>🚬</span> MokuMetrics
+      <header className="app-header" style={{ alignItems: 'center' }}>
+        <h1 className="app-title" style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '28px' }}>
+          <img src="/favicon.png" alt="MokuMetrics Logo" style={{ width: '48px', height: '48px', borderRadius: '10px', boxShadow: '0 0 10px rgba(16, 185, 129, 0.2)' }} /> MokuMetrics
         </h1>
         <span style={{ fontSize: '11px', background: 'rgba(255,255,255,0.08)', padding: '4px 8px', borderRadius: '12px', color: 'var(--text-secondary)' }}>
           {activeTab === 'home' && 'ダッシュボード'}

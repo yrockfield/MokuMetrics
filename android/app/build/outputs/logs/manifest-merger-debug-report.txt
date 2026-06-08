@@ -96,7 +96,7 @@ MERGED from [androidx.startup:startup-runtime:1.1.1] /home/yiwata/.gradle/caches
 	android:label
 		ADDED from /home/yiwata/repo/MokuMetrics/android/app/src/main/AndroidManifest.xml:7:9-41
 	android:icon
-		ADDED from /home/yiwata/repo/MokuMetrics/android/app/src/main/AndroidManifest.xml:6:9-58
+		ADDED from /home/yiwata/repo/MokuMetrics/android/app/src/main/AndroidManifest.xml:6:9-43
 	android:allowBackup
 		ADDED from /home/yiwata/repo/MokuMetrics/android/app/src/main/AndroidManifest.xml:5:9-35
 	android:theme
