@@ -1,0 +1,21 @@
+# Gradleキャッシュおよびビルド成果物
+.gradle/
+build/
+app/build/
+
+# ローカル設定（SDKパスなど、PC個別で異なる設定）
+local.properties
+
+# Android Studio (IntelliJ IDEA) 設定
+*.iml
+.idea/
+.navigation/
+captures/
+
+# キーストアファイル（署名キー）
+*.jks
+*.keystore
+
+# OS一時ファイル
+.DS_Store
+Thumbs.db
