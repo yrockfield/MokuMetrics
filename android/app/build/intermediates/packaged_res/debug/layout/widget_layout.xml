@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#151b26"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:gravity="center"
+    android:id="@+id/widget_container">
+
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="今日の本数"
+        android:textColor="#8b949e"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_count_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0 本"
+        android:textColor="#10b981"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/widget_button_record"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#10b981"
+        android:textColor="#000000"
+        android:text="@string/widget_button_label"
+        android:textStyle="bold"
+        android:textSize="12sp" />
+</LinearLayout>

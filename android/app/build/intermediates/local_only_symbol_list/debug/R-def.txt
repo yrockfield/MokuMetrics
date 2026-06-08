@@ -1,0 +1,12 @@
+R_DEF: Internal format may change without notice
+local
+id widget_button_record
+id widget_container
+id widget_count_text
+id widget_title
+layout widget_layout
+string app_name
+string widget_button_label
+string widget_name
+style Theme.MokuMetrics
+xml smoke_widget_info

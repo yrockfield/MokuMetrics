@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MokuMetrics</string>
+    <string name="widget_name">MokuMetrics 記録</string>
+    <string name="widget_button_label">吸っちまった</string>
+</resources>

@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "com.example.mokumetrics.app-merged_res-54:/xml_smoke_widget_info.xml.flat",
+        "source": "com.example.mokumetrics.app-main-56:/xml/smoke_widget_info.xml"
+    },
+    {
+        "merged": "com.example.mokumetrics.app-merged_res-54:/layout_widget_layout.xml.flat",
+        "source": "com.example.mokumetrics.app-main-56:/layout/widget_layout.xml"
+    }
+]
