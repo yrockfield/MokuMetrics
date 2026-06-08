@@ -1,18 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Flame, MessageSquare, AlertCircle } from 'lucide-react';
 import { getTodayCount, getSecondsSinceLastSmoke, formatDuration, generateSmartInsight } from '../utils/smokeAnalytics';
+import { smokingMessages } from '../utils/smokingMessages';
 
 export default function HomeScreen({ records, onAddRecord }) {
   const [memo, setMemo] = useState('');
   const [timeNow, setTimeNow] = useState(Date.now());
   const [showPulse, setShowPulse] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+  const toastTimerRef = useRef(null);
 
   // 1秒ごとに現在時刻を更新し、タイマーを進める
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeNow(Date.now());
     }, 1000);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
   }, []);
 
   const handleRecord = () => {
@@ -22,6 +28,18 @@ export default function HomeScreen({ records, onAddRecord }) {
     
     onAddRecord(Date.now(), memo.trim());
     setMemo(''); // 記録後にメモをクリア
+
+    // ランダムメッセージの表示
+    const randomIndex = Math.floor(Math.random() * smokingMessages.length);
+    const msg = smokingMessages[randomIndex];
+    setToastMessage(msg);
+
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage(null);
+    }, 3000);
   };
 
   const todayCount = getTodayCount(records);
@@ -93,6 +111,16 @@ export default function HomeScreen({ records, onAddRecord }) {
         </h4>
         <p className="insight-text">{insight}</p>
       </div>
+
+      {/* ランダムメッセージトースト表示 */}
+      {toastMessage && (
+        <div className="toast-overlay" onClick={() => setToastMessage(null)}>
+          <div className="toast-card">
+            <div className="toast-emoji">🚬</div>
+            <div className="toast-content">{toastMessage}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

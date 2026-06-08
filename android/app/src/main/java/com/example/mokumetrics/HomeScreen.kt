@@ -1,5 +1,6 @@
 package com.example.mokumetrics
 
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -35,12 +36,21 @@ fun HomeScreen(
 ) {
     var memo by remember { mutableStateOf("") }
     var timeNow by remember { mutableStateOf(System.currentTimeMillis()) }
+    var toastMessage by remember { mutableStateOf<String?>(null) }
 
     // 1秒ごとにタイマーを更新
     LaunchedEffect(Unit) {
         while (true) {
             timeNow = System.currentTimeMillis()
             delay(1000)
+        }
+    }
+
+    // トーストメッセージの自動消去タイマー
+    LaunchedEffect(toastMessage) {
+        if (toastMessage != null) {
+            delay(3000)
+            toastMessage = null
         }
     }
 
@@ -72,14 +82,15 @@ fun HomeScreen(
         label = "alpha"
     )
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
         // 1. 経過時間カード
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -232,6 +243,7 @@ fun HomeScreen(
                             .clickable {
                                 onAddRecord(System.currentTimeMillis(), memo.trim())
                                 memo = ""
+                                toastMessage = SmokingMessages.list.random()
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -300,5 +312,54 @@ fun HomeScreen(
         }
         
         Spacer(modifier = Modifier.height(60.dp)) // ナビゲーションバーの余白
+        }
+
+        // トーストオーバーレイ
+        AnimatedVisibility(
+            visible = toastMessage != null,
+            enter = fadeIn() + scaleIn(initialScale = 0.8f),
+            exit = fadeOut() + scaleOut(targetScale = 0.8f),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f))
+                    .clickable { toastMessage = null }, // タップで消去
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth(0.85f)
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+                    ),
+                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "🚬",
+                            fontSize = 32.sp
+                        )
+                        Text(
+                            text = toastMessage ?: "",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 22.sp
+                        )
+                    }
+                }
+            }
+        }
     }
 }
