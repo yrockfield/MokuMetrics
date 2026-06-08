@@ -106,7 +106,7 @@ export default function App() {
       </header>
 
       {/* メイン画面コンテンツ */}
-      <main style={{ flex: 1 }}>
+      <main style={{ flex: 1, width: '100%' }}>
         {renderScreen()}
       </main>
 

@@ -97,15 +97,16 @@ export default function HistoryScreen({ records, onAddRecord, onDeleteRecord, on
   };
 
   return (
-    <div className="history-screen">
+    <div className="history-screen" style={{ width: '100%' }}>
       {/* 1. 日付選択ナビゲーションヘッダー */}
       <div 
         className="glass-card" 
         style={{ 
+          width: '100%',
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center', 
-          padding: '12px 16px', 
+          padding: '16px 20px', 
           marginBottom: '16px' 
         }}
       >
@@ -160,7 +161,7 @@ export default function HistoryScreen({ records, onAddRecord, onDeleteRecord, on
       {/* 2. 手動追加の切り替えボタン */}
       <button 
         className="btn btn-secondary" 
-        style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+        style={{ width: '100%', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
         onClick={() => setShowAddForm(!showAddForm)}
       >
         <Plus size={16} /> {showAddForm ? '閉じる' : '過去の喫煙を手動で追加'}
@@ -168,7 +169,7 @@ export default function HistoryScreen({ records, onAddRecord, onDeleteRecord, on
 
       {/* 3. 手動追加フォーム */}
       {showAddForm && (
-        <form className="glass-card" onSubmit={handleManualSubmit}>
+        <form className="glass-card" style={{ width: '100%' }} onSubmit={handleManualSubmit}>
           <h4 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px' }}>過去データを追加</h4>
           
           <div className="form-group">
@@ -209,7 +210,7 @@ export default function HistoryScreen({ records, onAddRecord, onDeleteRecord, on
       )}
 
       {/* 4. 履歴リスト */}
-      <div className="glass-card">
+      <div className="glass-card" style={{ width: '100%' }}>
         <h4 style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-accent)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Calendar size={16} /> 喫煙履歴 ({filteredRecords.length}件)
         </h4>

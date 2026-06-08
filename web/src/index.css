@@ -59,6 +59,16 @@ body[data-theme="cyberpunk"] {
   --cyber-font-title: 'Outfit', sans-serif;
 }
 
+.home-screen, .stats-screen, .history-screen, .settings-screen {
+  width: 100%;
+}
+
+#root {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
 /* ベーススタイル */
 * {
   box-sizing: border-box;
@@ -338,7 +348,7 @@ body[data-theme="cyberpunk"] .pulse-button {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 400px;
+  max-height: 500px;
   overflow-y: auto;
   padding-right: 4px;
 }
