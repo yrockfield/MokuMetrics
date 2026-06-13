@@ -1,0 +1,18 @@
+# Node / Web
+web/node_modules/
+web/dist/
+.env
+.env*.local
+.DS_Store
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/*.iml
+android/.idea/
+android/.navigation/
+android/captures/
+android/*.jks
+android/*.keystore
