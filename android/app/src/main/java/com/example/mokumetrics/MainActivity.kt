@@ -161,10 +161,15 @@ class MainActivity : ComponentActivity() {
                         when (activeTab) {
                             "home" -> HomeScreen(
                                 records = records,
-                                onAddRecord = { ts, memo -> viewModel.addRecord(ts, memo) }
+                                onAddRecord = { ts, memo -> viewModel.addRecord(ts, memo) },
+                                llmInsight = viewModel.llmSmartInsight.value,
+                                llmOneLiners = viewModel.llmOneLiners.value,
+                                lastUpdateTime = viewModel.llmLastUpdateTime.value
                             )
                             "stats" -> StatsScreen(
-                                records = records
+                                records = records,
+                                llmPatternAnalysis = viewModel.llmPatternAnalysis.value,
+                                lastUpdateTime = viewModel.llmLastUpdateTime.value
                             )
                             "history" -> HistoryScreen(
                                 records = records,
@@ -177,7 +182,13 @@ class MainActivity : ComponentActivity() {
                                 onThemeChange = { theme -> viewModel.setTheme(theme) },
                                 onClearData = { viewModel.clearAllRecords() },
                                 onExportData = { viewModel.exportToJson() },
-                                onImportData = { json -> viewModel.importFromJson(json) }
+                                onImportData = { json -> viewModel.importFromJson(json) },
+                                apiKey = viewModel.apiKey.value,
+                                onApiKeyChange = { viewModel.setApiKey(it) },
+                                lastUpdateTime = viewModel.llmLastUpdateTime.value,
+                                oneLiners = viewModel.llmOneLiners.value,
+                                currentCharacter = viewModel.character.value,
+                                onCharacterChange = { viewModel.setCharacter(it) }
                             )
                         }
                     }

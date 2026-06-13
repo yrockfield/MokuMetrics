@@ -5,6 +5,9 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import kotlin.math.max
+import android.content.Context
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 object SmokeAnalytics {
 
@@ -74,36 +77,48 @@ object SmokeAnalytics {
 
     data class DayStat(val label: String, val count: Int)
 
+    data class IntervalStats(
+        val under30: Int,
+        val between30And60: Int,
+        val between60And120: Int,
+        val over120: Int,
+        val total: Int
+    )
+
     /**
-     * 曜日 (7) × 時間帯 (24時間) のヒートマップデータを集計
-     * 戻り値: 7行24列の2次元リスト
+     * 同じ日のレコード同士で喫煙間隔を計算し、ばらつき分布を集計する
      */
-    fun getHourlyHeatmapStats(records: List<SmokeRecord>): List<List<Int>> {
-        val matrix = MutableList(7) { MutableList(24) { 0 } }
+    fun getSmokingIntervalStats(records: List<SmokeRecord>): IntervalStats {
+        var under30 = 0
+        var between30And60 = 0
+        var between60And120 = 0
+        var over120 = 0
+        var total = 0
+
         val zone = ZoneId.systemDefault()
-
-        records.forEach { record ->
-            val zdt = Instant.ofEpochMilli(record.timestamp).atZone(zone)
-            val dayOfWeekValue = zdt.dayOfWeek.value // 1:月, ..., 7:日
-            val dayIdx = if (dayOfWeekValue == 7) 0 else dayOfWeekValue
-            val hour = zdt.hour // 0-23
-            matrix[dayIdx][hour]++
+        // 日付でグループ化
+        val groups = records.groupBy {
+            Instant.ofEpochMilli(it.timestamp).atZone(zone).toLocalDate()
         }
 
-        return matrix
-    }
-
-    /**
-     * ヒートマップの件数を 0〜4 のレベルに変換
-     */
-    fun getHeatmapLevel(count: Int): Int {
-        return when {
-            count == 0 -> 0
-            count <= 1 -> 1
-            count <= 3 -> 2
-            count <= 5 -> 3
-            else -> 4
+        groups.values.forEach { dayRecords ->
+            if (dayRecords.size >= 2) {
+                val sorted = dayRecords.sortedBy { it.timestamp }
+                for (i in 0 until sorted.size - 1) {
+                    val diffMs = sorted[i+1].timestamp - sorted[i].timestamp
+                    val diffMins = diffMs / (60 * 1000)
+                    when {
+                        diffMins < 30 -> under30++
+                        diffMins <= 60 -> between30And60++
+                        diffMins <= 120 -> between60And120++
+                        else -> over120++
+                    }
+                    total++
+                }
+            }
         }
+
+        return IntervalStats(under30, between30And60, between60And120, over120, total)
     }
 
     /**
@@ -174,5 +189,168 @@ object SmokeAnalytics {
         }
 
         return "記録が順調に蓄積されています！ダッシュボードから自分の「喫煙パターン」を把握して、自然なコントロールを目指しましょう。"
+    }
+
+    /**
+     * 曜日 (7) × 時間帯大区分 (4: 深夜, 朝, 昼, 夜) のヒートマップデータを集計
+     * 戻り値: 7行4列 of Int
+     */
+    fun getPeriodHeatmapStats(records: List<SmokeRecord>): List<List<Int>> {
+        val matrix = MutableList(7) { MutableList(4) { 0 } }
+        val zone = ZoneId.systemDefault()
+
+        records.forEach { record ->
+            val zdt = Instant.ofEpochMilli(record.timestamp).atZone(zone)
+            val dayOfWeekValue = zdt.dayOfWeek.value // 1:月, ..., 7:日
+            val dayIdx = if (dayOfWeekValue == 7) 0 else dayOfWeekValue
+            val hour = zdt.hour // 0-23
+            
+            val periodIdx = when (hour) {
+                in 8..11 -> 1 // 朝 (8-12)
+                in 12..17 -> 2 // 昼 (12-18)
+                in 18..23 -> 3 // 夜 (18-24)
+                else -> 0 // 深夜・早朝 (0-8)
+            }
+            matrix[dayIdx][periodIdx]++
+        }
+
+        return matrix
+    }
+
+    /**
+     * 期間ヒートマップの件数を 0〜4 のレベルに変換
+     */
+    fun getPeriodHeatmapLevel(count: Int): Int {
+        return when {
+            count == 0 -> 0
+            count <= 2 -> 1
+            count <= 5 -> 2
+            count <= 9 -> 3
+            else -> 4
+        }
+    }
+
+    /**
+     * 必要に応じてGemini APIを叩き、インサイト、パターン分析、一言を更新する
+     */
+    suspend fun updateLlmDataIfNeeded(context: Context, records: List<SmokeRecord>, apiKey: String, characterId: String = "uncle") {
+        if (apiKey.isEmpty() || records.isEmpty()) return
+
+        val now = System.currentTimeMillis()
+        val prefs = context.getSharedPreferences("mokumetrics_prefs", Context.MODE_PRIVATE)
+        val lastUpdateTime = prefs.getLong("llm_last_insight_update_time", 0L)
+
+        // 更新頻度: 4時間 (4 * 60 * 60 * 1000)
+        val UPDATE_INTERVAL = 4 * 60 * 60 * 1000L
+        if (now - lastUpdateTime < UPDATE_INTERVAL) {
+            return
+        }
+
+        val characterPrompts = mapOf(
+            "uncle" to "あなたは「フランクなおっちゃん」としてふるまってください。ぶっきらぼうだけど人情味のある焼き鳥屋のオヤジのような口調（関西弁混じりのフランクな口調）で、ユーザーを優しく受け流して励ましてください。分析やアドバイスもおっちゃんのキャラクターらしく、温かみがありつつぶっきらぼうな言い回しにしてください。",
+            "tsundere" to "あなたは「ツンデレ秘書」としてふるまってください。クールで丁寧な敬語を使う優秀なアシスタントで、基本は冷徹にデータを分析し、ややトゲのある言い方をしますが、最後にはユーザーの体のことや健康を本気で心配している強い優しさ（デレ）をはっきりと見せてください。最初はツンツンしていても、後半や最後のアドバイス部分では、心配するあまり感情がどうしても漏れ出てしまうような、強めのデレ感を意識してください。",
+            "gal" to "あなたは「明るくフランクな女性キャラ（マイルドなギャル）」としてふるまってください。明るく超ポジティブでフランクな話し言葉（「〜じゃん」「〜だし！」「ヤバい」など）を使い、絵文字や感嘆符を多く交えながら、ユーザーの記録行為自体を褒めちぎり、モチベーションを爆上げする全肯定の応援をしてください。ただし、コテコテすぎる表現（「ウチ」という一人称や、過剰なギャル特有の略語など）は避け、あくまで「親しみやすくてノリが良い、ポジティブな女友達」のような自然なフランクさを意識してください。"
+        )
+
+        withContext(Dispatchers.IO) {
+            try {
+                // 直近50件の喫煙記録を時系列順にフォーマット
+                val recentRecords = records
+                    .sortedByDescending { it.timestamp }
+                    .take(50)
+                    .reversed()
+
+                val zone = ZoneId.systemDefault()
+                val formattedRecords = recentRecords.mapIndexed { idx, r ->
+                    val zdt = Instant.ofEpochMilli(r.timestamp).atZone(zone)
+                    val dateStr = String.format(
+                        "%d/%02d/%02d %02d:%02d",
+                        zdt.year, zdt.monthValue, zdt.dayOfMonth, zdt.hour, zdt.minute
+                    )
+                    val intervalStr = if (idx > 0) {
+                        val diffMins = (r.timestamp - recentRecords[idx - 1].timestamp) / (60 * 1000)
+                        "${diffMins}分"
+                    } else {
+                        "なし"
+                    }
+                    "${idx + 1}. 日時: $dateStr, メモ: ${r.memo.ifEmpty { "なし" }}, 直前の喫煙からの経過時間: $intervalStr"
+                }.joinToString("\n")
+
+                val charPrompt = characterPrompts[characterId] ?: characterPrompts["uncle"]!!
+
+                val prompt = """
+                    $charPrompt
+                    ユーザーの直近の喫煙記録を分析し、以下の3つの要素を生成してください。
+
+                    1. スマートインサイト (smartInsight):
+                       直近の喫煙本数の変化や、最近のペースなどに対する、キャラクターの個性を強く反映した簡潔で的確な禁煙・減煙のアドバイス（日本語で2〜3文）。
+                    2. パターン分析 (patternAnalysis):
+                       曜日別や喫煙間隔の傾向に基づき、ユーザーの行動傾向（例：「ついつい30分未満で吸っている回数が多い」「特定の時間帯に集中している」など）をキャラクターらしく指摘し、具体的な対策を提案する文章（日本語で2〜3文）。
+                    3. 一言メッセージ (oneLiners):
+                       「吸っちまった」ボタンを押した直後にユーザーに提示する、合計10個のメッセージ。キャラクターの口調を完璧に維持し、それぞれ20〜40文字程度で、以下の構成にしてください。
+                       - 喫煙したことに対するコメント（励まし、ツッコミ、アドバイスなど）: 2件
+                       - 喫煙とは全く関係のない、脈絡のない雑談や日常のどうでもいいコメント（例：キャラクターの好きな食べ物の話、今考えていること、どうでもいい豆知識など、喫煙とは完全に無関係な内容）: 8件
+
+                    【ユーザーの喫煙記録】
+                    $formattedRecords
+
+                    必ず以下のJSONスキーマに従ってJSONを出力してください。他の余計な説明文やマークダウンタグ（```json等）は一切含めず、純粋なJSONオブジェクトのみを返してください。
+
+                    {
+                      "smartInsight": "文字列",
+                      "patternAnalysis": "文字列",
+                      "oneLiners": ["一言1", "一言2", "一言3", "一言4", "一言5", "一言6", "一言7", "一言8", "一言9", "一言10"]
+                    }
+                """.trimIndent()
+
+                val url = java.net.URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$apiKey")
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json")
+                conn.doOutput = true
+
+                val requestBody = org.json.JSONObject().apply {
+                    put("contents", org.json.JSONArray().put(org.json.JSONObject().apply {
+                        put("parts", org.json.JSONArray().put(org.json.JSONObject().apply {
+                            put("text", prompt)
+                        }))
+                    }))
+                    put("generationConfig", org.json.JSONObject().apply {
+                        put("responseMimeType", "application/json")
+                    })
+                }
+
+                conn.outputStream.use { os ->
+                    os.write(requestBody.toString().toByteArray(Charsets.UTF_8))
+                }
+
+                val responseCode = conn.responseCode
+                android.util.Log.d("MokuMetricsLLM", "Gemini API Response Code: $responseCode")
+                if (responseCode == 200) {
+                    val responseText = conn.inputStream.bufferedReader().use { it.readText() }
+                    val resObj = org.json.JSONObject(responseText)
+                    val candidate = resObj.getJSONArray("candidates").getJSONObject(0)
+                    val text = candidate.getJSONObject("content").getJSONArray("parts").getJSONObject(0).getString("text")
+
+                    val data = org.json.JSONObject(text)
+                    val smartInsight = data.getString("smartInsight")
+                    val patternAnalysis = data.getString("patternAnalysis")
+                    val oneLinersArray = data.getJSONArray("oneLiners")
+
+                    val editor = prefs.edit()
+                    editor.putString("llm_smart_insight", smartInsight)
+                    editor.putString("llm_pattern_analysis", patternAnalysis)
+                    editor.putString("llm_oneliners", oneLinersArray.toString())
+                    editor.putLong("llm_last_insight_update_time", now)
+                    editor.apply()
+                    android.util.Log.d("MokuMetricsLLM", "Gemini LLM data successfully updated and saved.")
+                } else {
+                    val errorText = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: "No error stream available"
+                    android.util.Log.e("MokuMetricsLLM", "Gemini API error ($responseCode): $errorText")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("MokuMetricsLLM", "Exception during Gemini API request", e)
+            }
+        }
     }
 }

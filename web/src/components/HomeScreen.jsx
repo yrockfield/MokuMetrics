@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Flame, MessageSquare, AlertCircle } from 'lucide-react';
-import { getTodayCount, getSecondsSinceLastSmoke, formatDuration, generateSmartInsight } from '../utils/smokeAnalytics';
+import { getTodayCount, getSecondsSinceLastSmoke, formatDuration, generateSmartInsight, getLlmSmartInsight, getLlmOneLiners } from '../utils/smokeAnalytics';
 import { smokingMessages } from '../utils/smokingMessages';
 
 export default function HomeScreen({ records, onAddRecord }) {
@@ -10,13 +10,24 @@ export default function HomeScreen({ records, onAddRecord }) {
   const [toastMessage, setToastMessage] = useState(null);
   const toastTimerRef = useRef(null);
 
+  const [llmInsight, setLlmInsight] = useState(getLlmSmartInsight());
+  const [llmUpdateTime, setLlmUpdateTime] = useState(() => localStorage.getItem("llm_last_insight_update_time"));
+
   // 1秒ごとに現在時刻を更新し、タイマーを進める
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeNow(Date.now());
     }, 1000);
+
+    const handleLlmUpdate = () => {
+      setLlmInsight(getLlmSmartInsight());
+      setLlmUpdateTime(localStorage.getItem("llm_last_insight_update_time"));
+    };
+    window.addEventListener("llm_data_updated", handleLlmUpdate);
+
     return () => {
       clearInterval(timer);
+      window.removeEventListener("llm_data_updated", handleLlmUpdate);
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, []);
@@ -30,8 +41,15 @@ export default function HomeScreen({ records, onAddRecord }) {
     setMemo(''); // 記録後にメモをクリア
 
     // ランダムメッセージの表示
-    const randomIndex = Math.floor(Math.random() * smokingMessages.length);
-    const msg = smokingMessages[randomIndex];
+    const customOneLiners = getLlmOneLiners();
+    let msg = "";
+    if (customOneLiners && customOneLiners.length > 0) {
+      const randomIndex = Math.floor(Math.random() * customOneLiners.length);
+      msg = customOneLiners[randomIndex];
+    } else {
+      const randomIndex = Math.floor(Math.random() * smokingMessages.length);
+      msg = smokingMessages[randomIndex];
+    }
     setToastMessage(msg);
 
     if (toastTimerRef.current) {
@@ -45,7 +63,7 @@ export default function HomeScreen({ records, onAddRecord }) {
   const todayCount = getTodayCount(records);
   const secondsSinceLast = getSecondsSinceLastSmoke(records, timeNow);
   const formattedDuration = formatDuration(secondsSinceLast);
-  const insight = generateSmartInsight(records);
+  const insight = llmInsight || generateSmartInsight(records);
 
   return (
     <div className="home-screen">
@@ -106,9 +124,19 @@ export default function HomeScreen({ records, onAddRecord }) {
 
       {/* スマートインサイト */}
       <div className="glass-card insight-card">
-        <h4 style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-accent)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <AlertCircle size={16} /> スマートインサイト
-        </h4>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <h4 style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-accent)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <AlertCircle size={16} /> スマートインサイト
+          </h4>
+          {llmInsight && llmUpdateTime && (
+            <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+              更新: {(() => {
+                const d = new Date(parseInt(llmUpdateTime, 10));
+                return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+              })()}
+            </span>
+          )}
+        </div>
         <p className="insight-text">{insight}</p>
       </div>
 

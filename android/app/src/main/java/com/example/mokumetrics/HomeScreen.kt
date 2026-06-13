@@ -32,7 +32,10 @@ import kotlinx.coroutines.delay
 @Composable
 fun HomeScreen(
     records: List<SmokeRecord>,
-    onAddRecord: (Long, String) -> Unit
+    onAddRecord: (Long, String) -> Unit,
+    llmInsight: String? = null,
+    llmOneLiners: List<String>? = null,
+    lastUpdateTime: Long = 0L
 ) {
     var memo by remember { mutableStateOf("") }
     var timeNow by remember { mutableStateOf(System.currentTimeMillis()) }
@@ -57,9 +60,24 @@ fun HomeScreen(
     val todayCount = SmokeAnalytics.getTodayCount(records, timeNow)
     val secondsSinceLast = SmokeAnalytics.getSecondsSinceLastSmoke(records, timeNow)
     val formattedDuration = SmokeAnalytics.formatDuration(secondsSinceLast)
-    val insight = SmokeAnalytics.generateSmartInsight(records, timeNow)
+    val insight = llmInsight ?: SmokeAnalytics.generateSmartInsight(records, timeNow)
 
     val customColors = LocalAppThemeColors.current
+
+    val formattedUpdateTime = remember(lastUpdateTime) {
+        if (lastUpdateTime == 0L) {
+            ""
+        } else {
+            try {
+                val zdt = java.time.Instant.ofEpochMilli(lastUpdateTime)
+                    .atZone(java.time.ZoneId.systemDefault())
+                val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm")
+                zdt.format(formatter)
+            } catch (e: Exception) {
+                ""
+            }
+        }
+    }
 
     // パルスリングのアニメーション
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -243,7 +261,11 @@ fun HomeScreen(
                             .clickable {
                                 onAddRecord(System.currentTimeMillis(), memo.trim())
                                 memo = ""
-                                toastMessage = SmokingMessages.list.random()
+                                toastMessage = if (llmOneLiners != null && llmOneLiners.isNotEmpty()) {
+                                    llmOneLiners.random()
+                                } else {
+                                    SmokingMessages.list.random()
+                                }
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -293,13 +315,26 @@ fun HomeScreen(
                     contentDescription = "Insight",
                     tint = MaterialTheme.colorScheme.primary
                 )
-                Column {
-                    Text(
-                        text = "スマートインサイト",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "スマートインサイト",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        if (llmInsight != null && formattedUpdateTime.isNotEmpty()) {
+                            Text(
+                                text = "更新: $formattedUpdateTime",
+                                fontSize = 10.sp,
+                                color = customColors.textSecondary
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = insight,

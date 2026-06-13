@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Home, BarChart2, Calendar, Settings as SettingsIcon } from 'lucide-react';
 
 // コンポーネントインポート
+import { updateLlmDataIfNeeded } from './utils/smokeAnalytics';
 import HomeScreen from './components/HomeScreen';
 import StatsScreen from './components/StatsScreen';
 import HistoryScreen from './components/HistoryScreen';
@@ -23,6 +24,28 @@ export default function App() {
     return saved || 'aurora'; // デフォルトは aurora green
   });
 
+  // 4. APIキー管理
+  const [apiKey, setApiKey] = useState(() => {
+    return localStorage.getItem('mokumetrics_apikey') || '';
+  });
+
+  const handleApiKeyChange = (key) => {
+    setApiKey(key);
+    localStorage.setItem('mokumetrics_apikey', key);
+  };
+
+  // 5. キャラクター管理
+  const [character, setCharacter] = useState(() => {
+    return localStorage.getItem('mokumetrics_character') || 'uncle';
+  });
+
+  const handleCharacterChange = (charId) => {
+    setCharacter(charId);
+    localStorage.setItem('mokumetrics_character', charId);
+    // キャラクター変更時は最終更新日時をリセットして即座にインサイトを再生成させる
+    localStorage.removeItem('llm_last_insight_update_time');
+  };
+
   // レコード更新時の LocalStorage 反映
   useEffect(() => {
     localStorage.setItem('mokumetrics_records', JSON.stringify(records));
@@ -41,7 +64,11 @@ export default function App() {
       timestamp,
       memo
     };
-    setRecords(prev => [...prev, newRecord]);
+    const updated = [...records, newRecord];
+    setRecords(updated);
+    
+    // バックグラウンドでGemini API呼び出し（非ブロッキング）
+    updateLlmDataIfNeeded(updated, apiKey, character).catch(e => console.error(e));
   };
 
   // レコード削除
@@ -83,6 +110,10 @@ export default function App() {
             records={records}
             onImportData={setRecords}
             onClearData={handleClearData} 
+            apiKey={apiKey}
+            onApiKeyChange={handleApiKeyChange}
+            character={character}
+            onCharacterChange={handleCharacterChange}
           />
         );
       default:

@@ -298,7 +298,9 @@ body[data-theme="cyberpunk"] .pulse-button {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-end;
   flex: 1;
+  height: 100%;
 }
 
 .chart-bar {
@@ -599,4 +601,41 @@ body[data-theme="cyberpunk"] .pulse-button {
   from { transform: scale(0.8); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+/* 設定画面のサブタブ */
+.sub-tab-container {
+  display: flex;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-card);
+  border-radius: var(--border-radius-md);
+  padding: 4px;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.sub-tab-button {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-primary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.sub-tab-button.active {
+  background: var(--color-accent);
+  color: #fff;
+  box-shadow: var(--shadow-accent);
+}
+
 
