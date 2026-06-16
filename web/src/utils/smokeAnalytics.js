@@ -41,19 +41,49 @@ export function formatDuration(seconds) {
 }
 
 /**
- * 曜日別の喫煙本数を集計
- * 戻り値: { "月": 3, "火": 5, ... } 形式の配列
+ * 曜日別の平均喫煙本数を集計
+ * 戻り値: { label: "月", count: 1.5 } 形式の配列
  */
 export function getDayOfWeekStats(records) {
   const dayNames = ["日", "月", "火", "水", "木", "金", "土"];
-  const stats = dayNames.map(name => ({ label: name, count: 0 }));
+  const stats = dayNames.map(name => ({ label: name, sum: 0 }));
   
+  if (!records || records.length === 0) {
+    return dayNames.map(name => ({ label: name, count: 0 }));
+  }
+
+  // 1. 各曜日の合計本数をカウント
   records.forEach(r => {
     const dayIndex = new Date(r.timestamp).getDay();
-    stats[dayIndex].count += 1;
+    stats[dayIndex].sum += 1;
   });
-  
-  return stats;
+
+  // 2. 登録されている最古の日付から今日までの各曜日の日数をカウント
+  const timestamps = records.map(r => r.timestamp);
+  const minTimestamp = Math.min(...timestamps);
+  const startDate = new Date(minTimestamp);
+  startDate.setHours(0, 0, 0, 0); // 開始日の00:00:00
+
+  const endDate = new Date();
+  endDate.setHours(23, 59, 59, 999); // 今日の23:59:59
+
+  const dayOccurrences = Array(7).fill(0);
+  let current = new Date(startDate);
+  while (current <= endDate) {
+    const dayIndex = current.getDay();
+    dayOccurrences[dayIndex] += 1;
+    current.setDate(current.getDate() + 1);
+  }
+
+  // 3. 平均値を算出
+  return dayNames.map((name, idx) => {
+    const occurrences = dayOccurrences[idx] || 1;
+    const avg = parseFloat((stats[idx].sum / occurrences).toFixed(1));
+    return {
+      label: name,
+      count: avg
+    };
+  });
 }
 
 /**

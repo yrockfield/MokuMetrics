@@ -64,7 +64,7 @@ export default function StatsScreen({ records }) {
         <h4 style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-accent)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <BarChart2 size={16} /> 曜日別喫煙トレンド
         </h4>
-        <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>曜日ごとの合計本数</p>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>曜日ごとの平均本数</p>
         
         <div className="chart-bar-container">
           {dayStats.map((day, index) => {

@@ -40,7 +40,7 @@ fun StatsScreen(
     val dailyAverage = if (uniqueDays > 0) totalCount.toDouble() / uniqueDays else 0.0
 
     val dayStats = SmokeAnalytics.getDayOfWeekStats(records)
-    val maxDayCount = max(dayStats.maxOfOrNull { it.count } ?: 0, 1)
+    val maxDayCount = maxOf(dayStats.maxOfOrNull { it.count } ?: 0.0, 1.0)
 
     val intervalStats = SmokeAnalytics.getSmokingIntervalStats(records)
     val heatmapData = SmokeAnalytics.getPeriodHeatmapStats(records)
@@ -159,7 +159,7 @@ fun StatsScreen(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "曜日ごとの合計本数",
+                    text = "曜日ごとの平均本数",
                     style = MaterialTheme.typography.bodySmall,
                     color = customColors.textSecondary
                 )
@@ -174,7 +174,7 @@ fun StatsScreen(
                     verticalAlignment = Alignment.Bottom
                 ) {
                     dayStats.forEach { day ->
-                        val ratio = day.count.toFloat() / maxDayCount.toFloat()
+                        val ratio = (day.count / maxDayCount).toFloat()
                         
                         Column(
                             modifier = Modifier
@@ -194,9 +194,10 @@ fun StatsScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.Bottom
                                 ) {
-                                    if (day.count > 0) {
+                                    if (day.count > 0.0) {
+                                        val displayVal = if (day.count % 1.0 == 0.0) "${day.count.toInt()}" else String.format("%.1f", day.count)
                                         Text(
-                                            text = "${day.count}",
+                                            text = displayVal,
                                             fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold,
                                             modifier = Modifier.padding(bottom = 4.dp)

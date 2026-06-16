@@ -53,29 +53,49 @@ object SmokeAnalytics {
     }
 
     /**
-     * 曜日別の喫煙本数を集計
-     * 日曜(1)から土曜(7)または月(1)から日(7)。ここではWebと揃えるため、日〜土の並びにする。
-     * 日曜(index 0)〜土曜(index 6)
+     * 曜日別の平均喫煙本数を集計
+     * 戻り値: DayStat(label = "月", count = 1.5) 形式のリスト
      */
     fun getDayOfWeekStats(records: List<SmokeRecord>): List<DayStat> {
         val dayNames = listOf("日", "月", "火", "水", "木", "金", "土")
-        val counts = IntArray(7)
+        val sums = DoubleArray(7)
         val zone = ZoneId.systemDefault()
 
+        if (records.isEmpty()) {
+            return dayNames.map { DayStat(it, 0.0) }
+        }
+
+        // 1. 各曜日の合計本数をカウント
         records.forEach { record ->
-            // java.time の DayOfWeek は月曜日が1, 日曜日が7
             val zdt = Instant.ofEpochMilli(record.timestamp).atZone(zone)
             val dayOfWeekValue = zdt.dayOfWeek.value // 1:月, ..., 7:日
             val index = if (dayOfWeekValue == 7) 0 else dayOfWeekValue // 7->0 (日), 1->1 (月) ...
-            counts[index]++
+            sums[index] += 1.0
         }
 
+        // 2. 登録されている最古の日付から今日までの各曜日の日数をカウント
+        val minTimestamp = records.minOf { it.timestamp }
+        val startDate = Instant.ofEpochMilli(minTimestamp).atZone(zone).toLocalDate()
+        val endDate = java.time.LocalDate.now(zone)
+
+        val dayOccurrences = IntArray(7)
+        var current = startDate
+        while (!current.isAfter(endDate)) {
+            val dayOfWeekValue = current.dayOfWeek.value
+            val index = if (dayOfWeekValue == 7) 0 else dayOfWeekValue
+            dayOccurrences[index] += 1
+            current = current.plusDays(1)
+        }
+
+        // 3. 平均値を算出
         return dayNames.mapIndexed { idx, name ->
-            DayStat(label = name, count = counts[idx])
+            val occurrences = if (dayOccurrences[idx] > 0) dayOccurrences[idx] else 1
+            val avg = Math.round((sums[idx] / occurrences) * 10.0) / 10.0
+            DayStat(label = name, count = avg)
         }
     }
 
-    data class DayStat(val label: String, val count: Int)
+    data class DayStat(val label: String, val count: Double)
 
     data class IntervalStats(
         val under30: Int,
